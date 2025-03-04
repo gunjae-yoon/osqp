@@ -1,0 +1,11 @@
+#!/bin/bash
+
+rm -rf build
+mkdir -p build
+
+cd build
+emcmake cmake -DOSQP_ENABLE_INTERRUPT=OFF -DOSQP_CODEGEN=OFF -DOSQP_BUILD_SHARED_LIB=OFF ../..
+cmake --build . -j 10 --target osqp_simple_demo_emscripten
+cd ..
+
+# python -m http.server --directory /home/vineetb/osqp/wasm

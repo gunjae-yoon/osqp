@@ -282,7 +282,11 @@ if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -G -g")
   else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    if (DEFINED EMSCRIPTEN)
+      # for some reason -O3 is causing functions to not be exported in Emscripten
+    else()
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    endif()
   endif()
 
   set(CMAKE_C_STANDARD_LIBRARIES "${CMAKE_C_STANDARD_LIBRARIES} -lm") # Include math
@@ -391,9 +395,9 @@ endif()
 message( STATUS "Build static library: " ${OSQP_BUILD_STATIC_LIB} )
 
 if( OSQP_BUILD_STATIC_LIB )
-  add_library(osqpstatic STATIC
-              $<TARGET_OBJECTS:OSQPLIB>
-              "${CMAKE_CURRENT_SOURCE_DIR}/src/osqp_api.c")
+    add_library(osqpstatic STATIC
+            $<TARGET_OBJECTS:OSQPLIB>
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/osqp_api.c")
 
   # Append the algebra name to the library file if desired
   if(OSQP_LIB_SUFFIX)
@@ -413,6 +417,8 @@ if( OSQP_BUILD_STATIC_LIB )
   target_include_directories(
     osqpstatic PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/public;${CMAKE_CURRENT_BINARY_DIR}/include/public>"
                       "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/osqp>")
+
+
 endif()
 
 # ----------------------------------------------
@@ -458,7 +464,16 @@ if(OSQP_BUILD_DEMO_EXE)
 
   add_executable(osqp_simple_demo
                  ${OSQP_EXAMPLES_DIR}/osqp_simple_demo.c )
-  target_link_libraries(osqp_simple_demo osqpstatic ${osqplib_link_libs})
+
+    target_link_libraries(osqp_simple_demo osqpstatic ${osqplib_link_libs})
+
+  if (DEFINED EMSCRIPTEN)
+    add_executable(osqp_simple_demo_emscripten
+            ${OSQP_EXAMPLES_DIR}/osqp_simple_demo_emscripten.c )
+    target_link_libraries(osqp_simple_demo_emscripten osqpstatic ${osqplib_link_libs})
+    target_link_options(osqp_simple_demo_emscripten PRIVATE
+            "-sEXPORTED_FUNCTIONS=['_main', '_main_solve', '_malloc', '_free']")
+  endif()
 
   add_executable(osqp_demo
                  ${OSQP_EXAMPLES_DIR}/osqp_demo.c
@@ -472,7 +487,8 @@ if(OSQP_BUILD_DEMO_EXE)
   target_include_directories(osqp_demo PRIVATE
                               ${osqplib_includes}
                               ${OSQP_EXAMPLES_DIR}/problems )
-  target_link_libraries(osqp_demo osqpstatic ${osqplib_link_libs})
+
+    target_link_libraries(osqp_demo osqpstatic ${osqplib_link_libs})
 
   if(OSQP_CODEGEN)
     add_executable(osqp_codegen_demo ${OSQP_EXAMPLES_DIR}/osqp_codegen_demo.c)
