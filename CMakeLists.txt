@@ -589,3 +589,5 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND OSQP_BUILD_UNITTESTS)
 
   add_subdirectory(tests)
 endif()
+
+include (configure/cmake/cpack.cmake)
